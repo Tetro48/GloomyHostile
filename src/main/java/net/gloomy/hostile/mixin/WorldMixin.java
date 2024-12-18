@@ -30,7 +30,6 @@ public class WorldMixin {
         else if (GloomyHostile.worldState == 2 || GloomyHostile.worldState == 1) {
             if (getIsNight(thisObj)) cir.setReturnValue(0f);
             else cir.setReturnValue(4f/15f);
-            GloomyHostile.isDaytime = !getIsNight(thisObj);
         }
 		    // System.out.println("sunlight subtracted:"+thisObj.skylightSubtracted);
         // cir.setReturnValue(0f); // this is temporary, this sets to permanent gloom

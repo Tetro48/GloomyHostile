@@ -14,8 +14,8 @@ public class RenderGlobalMixin {
     private static final ResourceLocation blotSun = new ResourceLocation("textures/blotsun.png");
 
     @ModifyArg(method = "renderSky", at = @At(value = "INVOKE", target = "Lcom/prupe/mcpatcher/sky/SkyRenderer;setupCelestialObject(Lnet/minecraft/src/ResourceLocation;)Lnet/minecraft/src/ResourceLocation;",ordinal = 0))
-    private ResourceLocation manageMoonTexture(ResourceLocation defaultTexture){
-        if(GloomyHostile.isDaytime && GloomyHostile.worldState == 2){
+    private ResourceLocation manageSunTexture(ResourceLocation defaultTexture){
+        if(GloomyHostile.worldState == 2){
             return blotSun;
         }
         return defaultTexture;
