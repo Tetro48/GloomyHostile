@@ -4,6 +4,7 @@
   "package": "net.gloomy.hostile.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "BlockPortalMixin",
     "MinecraftServerMixin",
     "RenderGlobalMixin",
     "WorldMixin"

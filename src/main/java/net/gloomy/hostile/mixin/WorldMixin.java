@@ -20,6 +20,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(World.class)
 public class WorldMixin {
     @Shadow public WorldInfo worldInfo;
+
+    private static int moonTransitionTicks = 0;
     
     @Inject(method = "computeOverworldSunBrightnessWithMoonPhases", at = @At("RETURN"),remap = false, cancellable = true)
     private void manageLightLevels(CallbackInfoReturnable<Float> cir){
@@ -29,10 +31,31 @@ public class WorldMixin {
         }
         else if (GloomyHostile.worldState == 2 || GloomyHostile.worldState == 1) {
             if (getIsNight(thisObj)) cir.setReturnValue(0f);
-            else cir.setReturnValue(4f/15f);
+            else if (GloomyHostile.worldState == 2) cir.setReturnValue((15f-thisObj.skylightSubtracted)/25f);
         }
 		    // System.out.println("sunlight subtracted:"+thisObj.skylightSubtracted);
         // cir.setReturnValue(0f); // this is temporary, this sets to permanent gloom
+    }
+    // @Inject(method = "initialWorldChunkLoad", at = @At("RETURN"))
+    // private void initialWorldChunkLoadMixin(CallbackInfo ci) {
+    //     if (GloomyHostile.worldState == 2 || GloomyHostile.worldState == 1) {
+    //         RenderGlobalMixin.postWitherSunTicks = 99;
+    //         moonTransitionTicks = 99;
+    //     }
+    //     else {
+    //         RenderGlobalMixin.postWitherSunTicks = 99;
+    //         moonTransitionTicks = 99;
+    //     }
+    // }
+    @Inject(method = "tick", at = @At("RETURN"), cancellable = true)
+    private void tick(CallbackInfo ci){
+        World thisObj = (World)(Object)this;
+        if (thisObj.provider.dimensionId == 0 && !(thisObj instanceof WorldServer)){
+            if (GloomyHostile.worldState == 2) GloomyHostile.postWitherSunTicks++;
+            else GloomyHostile.postWitherSunTicks = 0;
+            if (GloomyHostile.worldState == 1 || GloomyHostile.worldState == 2) moonTransitionTicks++;
+            else moonTransitionTicks = 0;
+        }
     }
 
     @Inject(method = "getMoonPhase", at = @At("RETURN"), cancellable = true)
@@ -42,8 +65,12 @@ public class WorldMixin {
             //Nothing.
         }
         else if (GloomyHostile.worldState == 2 || GloomyHostile.worldState == 1) {
-            cir.setReturnValue(4);
+            cir.setReturnValue((int)lerp((float)cir.getReturnValue(), 4f, Math.min(moonTransitionTicks/240f, 1f)));
         }
+    }
+    private float lerp(float a, float b, float f) 
+    {
+        return (a * (1.0f - f)) + (b * f);
     }
 
     /* ! WARNING ! This will modify how isDaytime works! ! WARNING ! */
@@ -64,6 +91,6 @@ public class WorldMixin {
     }
 
     @Unique private boolean getIsNight(World world){
-        return world.getWorldTime() % 24000 >= 12541 && world.getWorldTime() % 24000 <= 23459;
+        return world.getWorldTime() % 24000 >= 13200 && world.getWorldTime() % 24000 <= 23159;
     }
 }

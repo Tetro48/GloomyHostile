@@ -4,7 +4,7 @@ import btw.community.gloomyhostile.GloomyHostile;
 import btw.world.util.difficulty.Difficulties;
 import btw.world.util.WorldUtils;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.src.WorldServer;
+import net.minecraft.src.*;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -41,7 +41,8 @@ public class MinecraftServerMixin {
     
     @Inject(method = "tick", at = @At("RETURN"), cancellable = true)
     private void tick(CallbackInfo ci) {
-        if (this.worldServers[0].getTotalWorldTime() % 120 != 0) return;
+        GloomyHostile.forcedStateDuration--;
+        if (this.worldServers[0].getTotalWorldTime() % 20 != 0) return;
         if (this.worldServers[0].worldInfo.getDifficulty() == Difficulties.HOSTILE || GloomyHostile.enableGloomEverywhere){
             if (WorldUtils.gameProgressHasEndDimensionBeenAccessedServerOnly() && !GloomyHostile.keepGloomPostDragon) {
                 this.worldServers[0].setData(GloomyHostile.WORLD_STATE, 3);
@@ -60,6 +61,10 @@ public class MinecraftServerMixin {
         else
         {
             this.worldServers[0].setData(GloomyHostile.WORLD_STATE, 0);
+        }
+        if (GloomyHostile.forcedStateDuration > 0) 
+        {
+            this.worldServers[0].setData(GloomyHostile.WORLD_STATE, GloomyHostile.forcedWorldState);
         }
         if (GloomyHostile.worldState != this.worldServers[0].getData(GloomyHostile.WORLD_STATE)) {
             GloomyHostile.sendWorldStateToAllPlayers();

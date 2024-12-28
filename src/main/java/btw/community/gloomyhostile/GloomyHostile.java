@@ -3,6 +3,7 @@ package btw.community.gloomyhostile;
 import btw.AddonHandler;
 import btw.BTWAddon;
 import btw.BTWMod;
+import btw.world.util.data.BTWWorldData;
 import btw.world.util.data.DataEntry;
 import btw.world.util.data.DataProvider;
 import btw.world.util.WorldUtils;
@@ -19,7 +20,9 @@ public class GloomyHostile extends BTWAddon {
     private static GloomyHostile instance;
 
     public static int worldState = 0;
-    public static boolean isDaytime;
+    public static int forcedWorldState = 0;
+    public static long forcedStateDuration = 0;
+    public static int postWitherSunTicks = 0;
 
     public static boolean enableGloomEverywhere;
     public static boolean keepGloomPostDragon;
@@ -50,13 +53,42 @@ public class GloomyHostile extends BTWAddon {
 
             @Override
             public String getCommandUsage(ICommandSender iCommandSender) {
-                return "/gloomyhostile";
+                return "/gloomyhostile <get / force <state, duration in ticks / reset> / reset <nether / wither>>";
             }
 
             @Override
             public void processCommand(ICommandSender iCommandSender, String[] strings) {
                 MinecraftServer server = MinecraftServer.getServer();
-                iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("World state: " + server.worldServers[0].getData(WORLD_STATE)));
+                if (strings.length == 3 && strings[0].equals("force")) {
+                    try {
+                        int customState = Integer.parseInt(strings[1]);
+                        long duration = Long.parseLong(strings[2]);
+                        server.worldServers[0].setData(WORLD_STATE, customState);
+                        GloomyHostile.forcedWorldState = customState;
+                        GloomyHostile.forcedStateDuration = duration;
+                        iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("World state is set to " + customState + " for " + duration / 20 + " seconds. This doesn't persist between restarts."));
+                    } catch (NumberFormatException e) {
+                        throw new WrongUsageException("Invalid state or duration length.");
+                    }
+                }
+                else if (strings.length == 2 && strings[0].equals("reset") && strings[1].equals("wither")) {
+                    iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("Wither summoned boolean is now FALSE."));
+                    server.worldServers[0].setData(BTWWorldData.WITHER_SUMMONED, false);
+                }
+                else if (strings.length == 2 && strings[0].equals("reset") && strings[1].equals("nether")) {
+                    iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("Nether accessed boolean is now FALSE."));
+                    server.worldServers[0].setData(BTWWorldData.NETHER_ACCESSED, false);
+                }
+                else if (strings.length == 2 && strings[0].equals("force") && strings[1].equals("reset")) {
+                    GloomyHostile.forcedWorldState = 0;
+                    GloomyHostile.forcedStateDuration = 0;
+                }
+                else if (strings.length == 1 && strings[0].equals("get")) {
+                    iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("World state: " + server.worldServers[0].getData(WORLD_STATE)));
+                }
+                else {
+                    throw new WrongUsageException(getCommandUsage(iCommandSender));
+                }
             }
 
             @Override
