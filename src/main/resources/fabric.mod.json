@@ -8,8 +8,9 @@
     "Tetro48"
   ],
   "contact": {
-    "homepage": "https://legacyfabric.net/",
-    "sources": "https://github.com/Legacy-Fabric/fabric-example-mod"
+    "homepage": "https://github.com/Tetro48/GloomyHostile",
+    "sources": "https://github.com/Tetro48/GloomyHostile",
+    "issues": "https://github.com/Tetro48/GloomyHostile/issues"
   },
   "license": "CC0-1.0",
   "icon": "assets/gloomyhostile/icon.png",

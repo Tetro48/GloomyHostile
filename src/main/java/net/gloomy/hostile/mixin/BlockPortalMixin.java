@@ -16,7 +16,7 @@ import java.util.Random;
 @Mixin(BlockPortal.class)
 public class BlockPortalMixin {
 
-    @Inject(method = "tryToCreatePortal", at = @At("RETURN"), cancellable = true)
+    @Inject(method = "tryToCreatePortal", at = @At("TAIL"), cancellable = true)
     private void onCreatePortal(World world, int x, int y, int z, CallbackInfoReturnable<Boolean> cir){
         if (world.worldInfo.getDifficulty() != Difficulties.HOSTILE && !GloomyHostile.enableGloomEverywhere) return;
         world.playSoundEffect(x,y,z,"portal.travel",2.0F,0.75F);

@@ -65,7 +65,8 @@ public class WorldMixin {
             //Nothing.
         }
         else if (GloomyHostile.worldState == 2 || GloomyHostile.worldState == 1) {
-            cir.setReturnValue((int)lerp((float)cir.getReturnValue(), 4f, Math.min(moonTransitionTicks/240f, 1f)));
+            if (MinecraftServer.getIsServer()) cir.setReturnValue(4);
+            else cir.setReturnValue((int)lerp((float)cir.getReturnValue(), 4f, Math.min(moonTransitionTicks/240f, 1f)));
         }
     }
     private float lerp(float a, float b, float f) 
