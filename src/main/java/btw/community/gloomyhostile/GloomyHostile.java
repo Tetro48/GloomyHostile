@@ -4,9 +4,6 @@ import btw.AddonHandler;
 import btw.BTWAddon;
 import btw.BTWMod;
 import btw.world.util.data.BTWWorldData;
-import btw.world.util.data.DataEntry;
-import btw.world.util.data.DataProvider;
-import btw.world.util.WorldUtils;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.server.MinecraftServer;
@@ -23,17 +20,10 @@ public class GloomyHostile extends BTWAddon {
     public static int forcedWorldState = 0;
     public static long forcedStateDuration = 0;
     public static int postWitherSunTicks = 0;
+    public static int moonTransitionTicks = 0;
 
     public static boolean enableGloomEverywhere;
     public static boolean keepGloomPostDragon;
-    
-    public static final DataEntry<Integer> WORLD_STATE = DataProvider.getBuilder(Integer.class)
-            .global()
-            .name("world_state")
-            .defaultSupplier(() -> 0)
-            .readNBT(NBTTagCompound::getInteger)
-            .writeNBT(NBTTagCompound::setInteger)
-            .build();
 
     public GloomyHostile() {
         super();
@@ -60,16 +50,12 @@ public class GloomyHostile extends BTWAddon {
             public void processCommand(ICommandSender iCommandSender, String[] strings) {
                 MinecraftServer server = MinecraftServer.getServer();
                 if (strings.length == 3 && strings[0].equals("force")) {
-                    try {
-                        int customState = Integer.parseInt(strings[1]);
-                        long duration = Long.parseLong(strings[2]);
-                        server.worldServers[0].setData(WORLD_STATE, customState);
-                        GloomyHostile.forcedWorldState = customState;
-                        GloomyHostile.forcedStateDuration = duration;
-                        iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("World state is set to " + customState + " for " + duration / 20 + " seconds. This doesn't persist between restarts."));
-                    } catch (NumberFormatException e) {
-                        throw new WrongUsageException("Invalid state or duration length.");
-                    }
+                    int customState = parseIntBounded(iCommandSender, strings[1], 0, 3);
+                    long duration = parseIntWithMin(iCommandSender, strings[2], 0);
+                    GloomyHostile.worldState = customState;
+                    GloomyHostile.forcedWorldState = customState;
+                    GloomyHostile.forcedStateDuration = duration;
+                    iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("World state is set to " + customState + " for " + duration / 20 + " seconds. This doesn't persist between restarts."));
                 }
                 else if (strings.length == 2 && strings[0].equals("reset") && strings[1].equals("wither")) {
                     iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("Wither summoned boolean is now FALSE."));
@@ -80,11 +66,12 @@ public class GloomyHostile extends BTWAddon {
                     server.worldServers[0].setData(BTWWorldData.NETHER_ACCESSED, false);
                 }
                 else if (strings.length == 2 && strings[0].equals("force") && strings[1].equals("reset")) {
+                    iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("World state is no longer forced."));
                     GloomyHostile.forcedWorldState = 0;
                     GloomyHostile.forcedStateDuration = 0;
                 }
                 else if (strings.length == 1 && strings[0].equals("get")) {
-                    iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("World state: " + server.worldServers[0].getData(WORLD_STATE)));
+                    iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("World state: " + GloomyHostile.worldState));
                 }
                 else {
                     throw new WrongUsageException(getCommandUsage(iCommandSender));
@@ -109,15 +96,20 @@ public class GloomyHostile extends BTWAddon {
                 e.printStackTrace();
             }
             if (worldState != -1) {
-                player.worldObj.setData(WORLD_STATE, worldState);
                 GloomyHostile.worldState = worldState;
             }
+        });
+        AddonHandler.registerPacketHandler("gloomyhostile|onJoin", (packet, player) -> {
+            postWitherSunTicks = 999;
+            moonTransitionTicks = 999;
         });
     }
 
     @Override
     public void serverPlayerConnectionInitialized(NetServerHandler serverHandler, EntityPlayerMP playerMP) {
         sendWorldStateToClient(serverHandler);
+        Packet250CustomPayload onJoinPacket = new Packet250CustomPayload("gloomyhostile|onJoin", new byte[0]);
+        serverHandler.sendPacketToPlayer(onJoinPacket);
     }
 
     private static void sendWorldStateToClient(NetServerHandler serverHandler) {
@@ -130,7 +122,7 @@ public class GloomyHostile extends BTWAddon {
         DataOutputStream dataStream = new DataOutputStream(byteStream);
 
         try {
-            dataStream.writeInt(MinecraftServer.getServer().worldServers[0].getData(WORLD_STATE));
+            dataStream.writeInt(GloomyHostile.worldState);
         } catch (Exception var4) {
             var4.printStackTrace();
         }
@@ -146,7 +138,6 @@ public class GloomyHostile extends BTWAddon {
     }
     @Override
     public void preInitialize() {
-        WORLD_STATE.register();
         this.registerProperty("EnableGloomEverywhere", "False", "! WARNING ! IF YOU'RE SURE YOU WANT THIS OUTSIDE HOSTILE DIFFICULTY, SET THIS TO TRUE ! WARNING !");
         this.registerProperty("KeepGloomPostDragon", "False", "! WARNING ! IF YOU'RE SURE YOU WANT TO KEEP ETERNAL NIGHT POST-DRAGON, SET THIS TO TRUE ! WARNING !");
     }

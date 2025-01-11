@@ -18,10 +18,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(World.class)
-public class WorldMixin {
+public abstract class WorldMixin {
     @Shadow public WorldInfo worldInfo;
 
-    private static int moonTransitionTicks = 0;
+    @Shadow public abstract boolean isDaytime();
     
     @Inject(method = "computeOverworldSunBrightnessWithMoonPhases", at = @At("RETURN"),remap = false, cancellable = true)
     private void manageLightLevels(CallbackInfoReturnable<Float> cir){
@@ -47,14 +47,24 @@ public class WorldMixin {
     //         moonTransitionTicks = 99;
     //     }
     // }
-    @Inject(method = "tick", at = @At("RETURN"), cancellable = true)
+    @Inject(method = "tick", at = @At("RETURN"))
     private void tick(CallbackInfo ci){
         World thisObj = (World)(Object)this;
         if (thisObj.provider.dimensionId == 0 && !(thisObj instanceof WorldServer)){
-            if (GloomyHostile.worldState == 2) GloomyHostile.postWitherSunTicks++;
+            if (GloomyHostile.worldState == 2) {
+                GloomyHostile.postWitherSunTicks++;
+                if (GloomyHostile.postWitherSunTicks == 240) {
+                    Minecraft.getMinecraft().thePlayer.playSound("mob.wither.spawn",2.0F,0.5F);
+                }
+            }
             else GloomyHostile.postWitherSunTicks = 0;
-            if (GloomyHostile.worldState == 1 || GloomyHostile.worldState == 2) moonTransitionTicks++;
-            else moonTransitionTicks = 0;
+            if (GloomyHostile.worldState == 1 || GloomyHostile.worldState == 2) {
+                GloomyHostile.moonTransitionTicks++;
+                if (GloomyHostile.moonTransitionTicks == 240 && GloomyHostile.worldState == 1) {
+                    Minecraft.getMinecraft().thePlayer.playSound("mob.wither.death",2.0F,0.5F);
+                }
+            }
+            else GloomyHostile.moonTransitionTicks = 0;
         }
     }
 
@@ -66,7 +76,7 @@ public class WorldMixin {
         }
         else if (GloomyHostile.worldState == 2 || GloomyHostile.worldState == 1) {
             if (MinecraftServer.getIsServer()) cir.setReturnValue(4);
-            else cir.setReturnValue((int)lerp((float)cir.getReturnValue(), 4f, Math.min(moonTransitionTicks/240f, 1f)));
+            else cir.setReturnValue((int)lerp((float)cir.getReturnValue(), 4f, Math.min(GloomyHostile.moonTransitionTicks/240f, 1f)));
         }
     }
     private float lerp(float a, float b, float f) 
@@ -82,12 +92,31 @@ public class WorldMixin {
         }
     }
 
-    @Inject(method = "getSkyColor", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "getSkyColor", at = @At("RETURN"), cancellable = true)
     private void darkenSky(CallbackInfoReturnable<Vec3> cir){
         World thisObj = (World)(Object)this;
         if (GloomyHostile.worldState == 2) {
-            double grayness = 0.1d - (thisObj.skylightSubtracted/15) * 0.1d;
-            cir.setReturnValue(thisObj.getWorldVec3Pool().getVecFromPool(grayness, grayness, grayness));
+            double darkness = 0.15d - (thisObj.skylightSubtracted / 15d) * 0.1d;
+            Vec3 skyColor = cir.getReturnValue();
+            skyColor.scale(darkness);
+            cir.setReturnValue(skyColor);
+        }
+    }
+    @Inject(method = "getFogColor", at = @At("RETURN"), cancellable = true)
+    private void darkenFog(CallbackInfoReturnable<Vec3> cir){
+        World thisObj = (World)(Object)this;
+        if (GloomyHostile.worldState == 2) {
+            double darkness = 0.1d - (thisObj.skylightSubtracted / 15d) * 0.1d;
+            Vec3 fogColor = cir.getReturnValue();
+            fogColor.scale(darkness);
+            cir.setReturnValue(fogColor);
+        }
+    }
+    @Inject(method = "getStarBrightness", at = @At("RETURN"), cancellable = true)
+    private void showStars(CallbackInfoReturnable<Float> cir){
+        World thisObj = (World)(Object)this;
+        if (GloomyHostile.worldState == 2) {
+            cir.setReturnValue(thisObj.skylightSubtracted / 30f);
         }
     }
 

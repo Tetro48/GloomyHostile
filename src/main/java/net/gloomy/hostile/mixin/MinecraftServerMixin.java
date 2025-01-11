@@ -15,60 +15,63 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MinecraftServerMixin {
     @Shadow public WorldServer[] worldServers;
 
+    private int oldWorldState;
+
     @Inject(method = "initialWorldChunkLoad", at = @At("RETURN"))
     private void initialWorldChunkLoadMixin(CallbackInfo ci) {
         if (this.worldServers[0].worldInfo.getDifficulty() == Difficulties.HOSTILE || GloomyHostile.enableGloomEverywhere){
             if (WorldUtils.gameProgressHasEndDimensionBeenAccessedServerOnly() && !GloomyHostile.keepGloomPostDragon) {
-                this.worldServers[0].setData(GloomyHostile.WORLD_STATE, 3);
+                GloomyHostile.worldState = 3;
             }
             else if (WorldUtils.gameProgressHasWitherBeenSummonedServerOnly()) {
-                this.worldServers[0].setData(GloomyHostile.WORLD_STATE, 2);
+                GloomyHostile.worldState = 2;
             }
             else if (WorldUtils.gameProgressHasNetherBeenAccessedServerOnly()) {
-                this.worldServers[0].setData(GloomyHostile.WORLD_STATE, 1);
+                GloomyHostile.worldState = 1;
             }
             else
             {
-                this.worldServers[0].setData(GloomyHostile.WORLD_STATE, 0);
+                GloomyHostile.worldState = 0;
             }
         }
         else
         {
-            this.worldServers[0].setData(GloomyHostile.WORLD_STATE, 0);
+            GloomyHostile.worldState = 0;
         }
-        GloomyHostile.worldState = this.worldServers[0].getData(GloomyHostile.WORLD_STATE);
+
+        oldWorldState = GloomyHostile.worldState;
     }
     
-    @Inject(method = "tick", at = @At("RETURN"), cancellable = true)
+    @Inject(method = "tick", at = @At("RETURN"))
     private void tick(CallbackInfo ci) {
         GloomyHostile.forcedStateDuration--;
         if (this.worldServers[0].getTotalWorldTime() % 20 != 0) return;
         if (this.worldServers[0].worldInfo.getDifficulty() == Difficulties.HOSTILE || GloomyHostile.enableGloomEverywhere){
             if (WorldUtils.gameProgressHasEndDimensionBeenAccessedServerOnly() && !GloomyHostile.keepGloomPostDragon) {
-                this.worldServers[0].setData(GloomyHostile.WORLD_STATE, 3);
+                GloomyHostile.worldState = 3;
             }
             else if (WorldUtils.gameProgressHasWitherBeenSummonedServerOnly()) {
-                this.worldServers[0].setData(GloomyHostile.WORLD_STATE, 2);
+                GloomyHostile.worldState = 2;
             }
             else if (WorldUtils.gameProgressHasNetherBeenAccessedServerOnly()) {
-                this.worldServers[0].setData(GloomyHostile.WORLD_STATE, 1);
+                GloomyHostile.worldState = 1;
             }
             else
             {
-                this.worldServers[0].setData(GloomyHostile.WORLD_STATE, 0);
+                GloomyHostile.worldState = 0;
             }
         }
         else
         {
-            this.worldServers[0].setData(GloomyHostile.WORLD_STATE, 0);
+            GloomyHostile.worldState = 0;
         }
         if (GloomyHostile.forcedStateDuration > 0) 
         {
-            this.worldServers[0].setData(GloomyHostile.WORLD_STATE, GloomyHostile.forcedWorldState);
+            GloomyHostile.worldState = GloomyHostile.forcedWorldState;
         }
-        if (GloomyHostile.worldState != this.worldServers[0].getData(GloomyHostile.WORLD_STATE)) {
+        if (GloomyHostile.worldState != oldWorldState) {
             GloomyHostile.sendWorldStateToAllPlayers();
         }
-        GloomyHostile.worldState = this.worldServers[0].getData(GloomyHostile.WORLD_STATE);
+        oldWorldState = GloomyHostile.worldState;
     }
 }
