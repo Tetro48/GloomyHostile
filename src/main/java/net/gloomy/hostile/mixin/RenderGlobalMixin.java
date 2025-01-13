@@ -19,9 +19,10 @@ public class RenderGlobalMixin {
     @ModifyArg(method = "renderSky", at = @At(value = "INVOKE", target = "Lcom/prupe/mcpatcher/sky/SkyRenderer;setupCelestialObject(Lnet/minecraft/src/ResourceLocation;)Lnet/minecraft/src/ResourceLocation;",ordinal = 0))
     private ResourceLocation manageSunTexture(ResourceLocation defaultTexture){
         if(GloomyHostile.worldState == 2){
-            if (GloomyHostile.postWitherSunTicks < 80) return blottingSun1;
-            else if (GloomyHostile.postWitherSunTicks < 160) return blottingSun2;
-            else if (GloomyHostile.postWitherSunTicks < 240) return blottingSun3;
+            if (GloomyHostile.postWitherSunTicks < GloomyHostile.sunTransitionTime * 0.25) return defaultTexture;
+            else if (GloomyHostile.postWitherSunTicks < GloomyHostile.sunTransitionTime * 0.5) return blottingSun1;
+            else if (GloomyHostile.postWitherSunTicks < GloomyHostile.sunTransitionTime * 0.75) return blottingSun2;
+            else if (GloomyHostile.postWitherSunTicks < GloomyHostile.sunTransitionTime) return blottingSun3;
             return blotSun;
         }
         return defaultTexture;

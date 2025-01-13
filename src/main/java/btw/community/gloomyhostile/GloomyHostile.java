@@ -20,7 +20,10 @@ public class GloomyHostile extends BTWAddon {
     public static int forcedWorldState = 0;
     public static long forcedStateDuration = 0;
     public static int postWitherSunTicks = 0;
-    public static int moonTransitionTicks = 0;
+    public static int postNetherMoonTicks = 0;
+
+    public final static int sunTransitionTime = 240;
+    public final static int moonTransitionTime = 240;
 
     public static boolean enableGloomEverywhere;
     public static boolean keepGloomPostDragon;
@@ -101,7 +104,7 @@ public class GloomyHostile extends BTWAddon {
         });
         AddonHandler.registerPacketHandler("gloomyhostile|onJoin", (packet, player) -> {
             postWitherSunTicks = 999;
-            moonTransitionTicks = 999;
+            postNetherMoonTicks = 999;
         });
     }
 

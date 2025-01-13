@@ -38,13 +38,26 @@ public class MinecraftServerMixin {
         {
             GloomyHostile.worldState = 0;
         }
-
+        if (GloomyHostile.worldState == 1 || GloomyHostile.worldState == 2) {
+            GloomyHostile.postWitherSunTicks = 999;
+            GloomyHostile.postNetherMoonTicks = 999;
+        }
         oldWorldState = GloomyHostile.worldState;
     }
     
     @Inject(method = "tick", at = @At("RETURN"))
     private void tick(CallbackInfo ci) {
         GloomyHostile.forcedStateDuration--;
+        if (MinecraftServer.getIsServer()) {
+            if (GloomyHostile.worldState == 2) {
+                GloomyHostile.postWitherSunTicks++;
+            }
+            else GloomyHostile.postWitherSunTicks = 0;
+            if (GloomyHostile.worldState == 1 || GloomyHostile.worldState == 2) {
+                GloomyHostile.postNetherMoonTicks++;
+            }
+            else GloomyHostile.postNetherMoonTicks = 0;
+        }
         if (this.worldServers[0].getTotalWorldTime() % 20 != 0) return;
         if (this.worldServers[0].worldInfo.getDifficulty() == Difficulties.HOSTILE || GloomyHostile.enableGloomEverywhere){
             if (WorldUtils.gameProgressHasEndDimensionBeenAccessedServerOnly() && !GloomyHostile.keepGloomPostDragon) {

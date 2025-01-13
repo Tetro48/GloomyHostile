@@ -22,49 +22,54 @@ public abstract class WorldMixin {
     @Shadow public WorldInfo worldInfo;
 
     @Shadow public abstract boolean isDaytime();
-    
+
+    @Shadow public abstract float getRainStrength(float par1);
+    @Shadow public abstract float getWeightedThunderStrength(float par1);
+    @Shadow public abstract float getCelestialAngle(float par1);
+
+    private float calculateSkyBrightnessWithNewMoon(float sunBrightnessMultiplier) {
+        float fCelestialAngle = this.getCelestialAngle(1.0F);
+        float fSunInvertedBrightness = 1.0F - (MathHelper.cos(fCelestialAngle * (float)Math.PI * 2.0F) * 2.0F + 0.25F);
+        fSunInvertedBrightness = Math.min(Math.max(fSunInvertedBrightness, 0), 1);
+
+        double dSunBrightness = 1.0d - (double)fSunInvertedBrightness;
+        double dRainBrightnessModifier = 1.0d - (double)(this.getRainStrength(1.0F) * 5.0F) / 16.0d;
+        double dStormBrightnessModifier = 1.0d - (double)(this.getWeightedThunderStrength(1.0F) * 5.0F) / 16.0d;
+        dSunBrightness *= dRainBrightnessModifier * dStormBrightnessModifier * sunBrightnessMultiplier;
+
+        return (float)(dSunBrightness);
+    }
     @Inject(method = "computeOverworldSunBrightnessWithMoonPhases", at = @At("RETURN"),remap = false, cancellable = true)
     private void manageLightLevels(CallbackInfoReturnable<Float> cir){
-        World thisObj = (World)(Object)this;
         if (GloomyHostile.worldState == 3) {
             //Nothing.
         }
         else if (GloomyHostile.worldState == 2 || GloomyHostile.worldState == 1) {
-            if (getIsNight(thisObj)) cir.setReturnValue(0f);
-            else if (GloomyHostile.worldState == 2) cir.setReturnValue((15f-thisObj.skylightSubtracted)/25f);
+            float moonTransitionPoint = Math.min((float)GloomyHostile.postNetherMoonTicks / GloomyHostile.moonTransitionTime, 1f);
+            float sunTransitionPoint = Math.min((float)GloomyHostile.postWitherSunTicks / GloomyHostile.sunTransitionTime, 1f);
+            cir.setReturnValue(lerp(cir.getReturnValue(),
+                    calculateSkyBrightnessWithNewMoon(lerp(1f, 0.25f, sunTransitionPoint)),
+                    moonTransitionPoint));
         }
-		    // System.out.println("sunlight subtracted:"+thisObj.skylightSubtracted);
-        // cir.setReturnValue(0f); // this is temporary, this sets to permanent gloom
     }
-    // @Inject(method = "initialWorldChunkLoad", at = @At("RETURN"))
-    // private void initialWorldChunkLoadMixin(CallbackInfo ci) {
-    //     if (GloomyHostile.worldState == 2 || GloomyHostile.worldState == 1) {
-    //         RenderGlobalMixin.postWitherSunTicks = 99;
-    //         moonTransitionTicks = 99;
-    //     }
-    //     else {
-    //         RenderGlobalMixin.postWitherSunTicks = 99;
-    //         moonTransitionTicks = 99;
-    //     }
-    // }
     @Inject(method = "tick", at = @At("RETURN"))
     private void tick(CallbackInfo ci){
         World thisObj = (World)(Object)this;
         if (thisObj.provider.dimensionId == 0 && !(thisObj instanceof WorldServer)){
             if (GloomyHostile.worldState == 2) {
                 GloomyHostile.postWitherSunTicks++;
-                if (GloomyHostile.postWitherSunTicks == 240) {
+                if (GloomyHostile.postWitherSunTicks == GloomyHostile.sunTransitionTime) {
                     Minecraft.getMinecraft().thePlayer.playSound("mob.wither.spawn",2.0F,0.5F);
                 }
             }
             else GloomyHostile.postWitherSunTicks = 0;
             if (GloomyHostile.worldState == 1 || GloomyHostile.worldState == 2) {
-                GloomyHostile.moonTransitionTicks++;
-                if (GloomyHostile.moonTransitionTicks == 240 && GloomyHostile.worldState == 1) {
+                GloomyHostile.postNetherMoonTicks++;
+                if (GloomyHostile.postNetherMoonTicks == GloomyHostile.moonTransitionTime && GloomyHostile.worldState == 1) {
                     Minecraft.getMinecraft().thePlayer.playSound("mob.wither.death",2.0F,0.5F);
                 }
             }
-            else GloomyHostile.moonTransitionTicks = 0;
+            else GloomyHostile.postNetherMoonTicks = 0;
         }
     }
 
@@ -76,10 +81,12 @@ public abstract class WorldMixin {
         }
         else if (GloomyHostile.worldState == 2 || GloomyHostile.worldState == 1) {
             if (MinecraftServer.getIsServer()) cir.setReturnValue(4);
-            else cir.setReturnValue((int)lerp((float)cir.getReturnValue(), 4f, Math.min(GloomyHostile.moonTransitionTicks/240f, 1f)));
+            else cir.setReturnValue((int)lerp((float)cir.getReturnValue(), 4f,
+                    Math.min((float) GloomyHostile.postNetherMoonTicks / GloomyHostile.moonTransitionTime, 1f)));
         }
     }
-    private float lerp(float a, float b, float f) 
+    private float lerp(float a, float b, float f) { return (a * (1.0f - f)) + (b * f); }
+    private double lerp(double a, double b, double f)
     {
         return (a * (1.0f - f)) + (b * f);
     }
@@ -95,32 +102,32 @@ public abstract class WorldMixin {
     @Inject(method = "getSkyColor", at = @At("RETURN"), cancellable = true)
     private void darkenSky(CallbackInfoReturnable<Vec3> cir){
         World thisObj = (World)(Object)this;
+        double transitionPoint = Math.min((double)GloomyHostile.postWitherSunTicks / GloomyHostile.sunTransitionTime, 1d);
         if (GloomyHostile.worldState == 2) {
             double darkness = 0.15d - (thisObj.skylightSubtracted / 15d) * 0.1d;
             Vec3 skyColor = cir.getReturnValue();
-            skyColor.scale(darkness);
+            skyColor.scale(lerp(1, darkness, transitionPoint));
             cir.setReturnValue(skyColor);
         }
     }
     @Inject(method = "getFogColor", at = @At("RETURN"), cancellable = true)
     private void darkenFog(CallbackInfoReturnable<Vec3> cir){
         World thisObj = (World)(Object)this;
+        double transitionPoint = Math.min((double)GloomyHostile.postWitherSunTicks / GloomyHostile.sunTransitionTime, 1d);
         if (GloomyHostile.worldState == 2) {
             double darkness = 0.1d - (thisObj.skylightSubtracted / 15d) * 0.1d;
             Vec3 fogColor = cir.getReturnValue();
-            fogColor.scale(darkness);
+            fogColor.scale(lerp(1, darkness, transitionPoint));
             cir.setReturnValue(fogColor);
         }
     }
     @Inject(method = "getStarBrightness", at = @At("RETURN"), cancellable = true)
     private void showStars(CallbackInfoReturnable<Float> cir){
         World thisObj = (World)(Object)this;
+        float transitionPoint = Math.min((float)GloomyHostile.postWitherSunTicks / GloomyHostile.sunTransitionTime, 1f);
         if (GloomyHostile.worldState == 2) {
-            cir.setReturnValue(thisObj.skylightSubtracted / 30f);
+            float brightness = lerp(cir.getReturnValue(), thisObj.skylightSubtracted / 30f, transitionPoint);
+            cir.setReturnValue(brightness);
         }
-    }
-
-    @Unique private boolean getIsNight(World world){
-        return world.getWorldTime() % 24000 >= 13200 && world.getWorldTime() % 24000 <= 23159;
     }
 }
