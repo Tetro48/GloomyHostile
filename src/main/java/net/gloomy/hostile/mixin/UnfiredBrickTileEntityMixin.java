@@ -15,7 +15,7 @@ public abstract class UnfiredBrickTileEntityMixin extends TileEntity {
     @Shadow private int cookCounter;
     @Shadow private boolean isCooking;
 
-    @ModifyVariable(method = "updateCooking", at = @At(value = "INVOKE", target = "Lnet/minecraft/src/World;getBlockId(III)I", ordinal = 0), remap = false)
+    @ModifyVariable(method = "updateCooking", at = @At(value = "INVOKE", target = "Lnet/minecraft/src/World;getBlockId(III)I"), ordinal = 0)
     private boolean cookOnPostWitherSun(boolean original) {
         if (GloomyHostile.worldState == 2) {
             int iBlockMaxNaturalLight = this.worldObj.getBlockNaturalLightValueMaximum(this.xCoord, this.yCoord, this.zCoord);
@@ -30,7 +30,6 @@ public abstract class UnfiredBrickTileEntityMixin extends TileEntity {
         if (GloomyHostile.worldState == 2 && isCooking) {
             innerTickCounter++;
             if (innerTickCounter % 4 != 0) cookCounter--;
-            System.out.println(cookCounter + ", innercount: " + innerTickCounter);
         }
     }
 }
