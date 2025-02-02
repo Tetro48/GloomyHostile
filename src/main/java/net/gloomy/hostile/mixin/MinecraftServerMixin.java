@@ -42,6 +42,7 @@ public class MinecraftServerMixin {
             GloomyHostile.postWitherSunTicks = 999;
             GloomyHostile.postNetherMoonTicks = 999;
         }
+        GloomyHostile.worldState = Math.max(GloomyHostile.worldState, GloomyHostile.challengeWorldState);
         oldWorldState = GloomyHostile.worldState;
     }
     
@@ -78,6 +79,7 @@ public class MinecraftServerMixin {
         {
             GloomyHostile.worldState = 0;
         }
+        GloomyHostile.worldState = Math.max(GloomyHostile.worldState, GloomyHostile.challengeWorldState);
         if (GloomyHostile.forcedStateDuration > 0) 
         {
             GloomyHostile.worldState = GloomyHostile.forcedWorldState;
