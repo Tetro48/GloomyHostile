@@ -3,6 +3,7 @@ package btw.community.gloomyhostile;
 import btw.AddonHandler;
 import btw.BTWAddon;
 import btw.world.util.data.BTWWorldData;
+import btw.world.util.difficulty.Difficulties;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.server.MinecraftServer;
@@ -133,6 +134,25 @@ public class GloomyHostile extends BTWAddon {
         sendWorldStateToClient(serverHandler);
         Packet250CustomPayload onJoinPacket = new Packet250CustomPayload("gloomyhostile|onJoin", new byte[0]);
         serverHandler.sendPacketToPlayer(onJoinPacket);
+        //message on join
+        if (challengeWorldState > 0) {
+            String challengeText = "Huh, challenging yourself with total darkness during night? Good luck!";
+            if (challengeWorldState == 2) {
+                challengeText = "You're going to be in pain, stone axe is pretty much mandatory.";
+            }
+            if (AddonHandler.getModByID("nightmare_mode") != null) {
+                if (MinecraftServer.getServer().worldServers[0].getDifficulty() == Difficulties.HOSTILE) {
+                    if (MinecraftServer.getIsServer()) challengeText = "Sadism, pure sadism.";
+                    else challengeText = "You'll die.";
+                }
+            }
+            ChatMessageComponent message = ChatMessageComponent.createFromText(challengeText);
+            message.setItalic(true);
+            message.setBold(true);
+            message.setColor(EnumChatFormatting.GOLD);
+            serverHandler.sendPacketToPlayer(new Packet3Chat(message));
+
+        }
     }
 
     private static void sendWorldStateToClient(NetServerHandler serverHandler) {
@@ -161,7 +181,7 @@ public class GloomyHostile extends BTWAddon {
         challengeWorldState = Integer.parseInt(propertyValues.get("WorldChallengeLevel"));
         //this is to prevent breaking things, and also for anti-exploit reason.
         if (challengeWorldState >= 3 || challengeWorldState < 0) {
-            Minecraft.getMinecraft().getLogAgent().logWarning("Illegal world state challenge level of " + challengeWorldState);
+            AddonHandler.logWarning("Illegal world state challenge level of " + challengeWorldState);
             challengeWorldState = MathHelper.clamp_int(challengeWorldState, 0, 2);
         }
     }

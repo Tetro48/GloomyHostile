@@ -12,6 +12,7 @@
     "WorldMixin"
   ],
   "client": [
+    "GuiCreateWorldMixin",
     "RenderGlobalMixin"
   ],
   "injectors": {
