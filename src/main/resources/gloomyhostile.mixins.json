@@ -13,6 +13,7 @@
   ],
   "client": [
     "GuiCreateWorldMixin",
+    "GuiIngameMenuMixin",
     "RenderGlobalMixin"
   ],
   "injectors": {
