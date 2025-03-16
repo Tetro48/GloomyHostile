@@ -7,6 +7,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.src.*;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -15,6 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MinecraftServerMixin {
     @Shadow public WorldServer[] worldServers;
 
+    @Unique
     private int oldWorldState;
 
     @Inject(method = "initialWorldChunkLoad", at = @At("RETURN"))
@@ -49,6 +51,32 @@ public class MinecraftServerMixin {
     @Inject(method = "tick", at = @At("RETURN"))
     private void tick(CallbackInfo ci) {
         GloomyHostile.forcedStateDuration--;
+        GloomyHostile.postNetherMoonDelay--;
+        GloomyHostile.postWitherSunDelay--;
+        if (this.worldServers[0].worldInfo.getDifficulty() == Difficulties.HOSTILE || GloomyHostile.enableGloomEverywhere) {
+            if (GloomyHostile.postNetherMoonDelay == 0) {
+                for (Object player : MinecraftServer.getServer().getConfigurationManager().playerEntityList) {
+                    if (player instanceof EntityPlayerMP entityPlayerMP) {
+                        ChatMessageComponent text2 = new ChatMessageComponent();
+                        text2.addText("You feel a bit chilly, and gloomy...");
+                        text2.setColor(EnumChatFormatting.GRAY);
+                        text2.setItalic(true);
+                        entityPlayerMP.sendChatToPlayer(text2);
+                    }
+                }
+            }
+            if (GloomyHostile.postWitherSunDelay == 0) {
+                for (Object player : MinecraftServer.getServer().getConfigurationManager().playerEntityList) {
+                    if (player instanceof EntityPlayerMP entityPlayerMP) {
+                        ChatMessageComponent text2 = new ChatMessageComponent();
+                        text2.addText("You feel that something's off with the Sun...");
+                        text2.setColor(EnumChatFormatting.GRAY);
+                        text2.setItalic(true);
+                        entityPlayerMP.sendChatToPlayer(text2);
+                    }
+                }
+            }
+        }
         if (MinecraftServer.getIsServer()) {
             if (GloomyHostile.worldState == 2) {
                 GloomyHostile.postWitherSunTicks++;
@@ -64,10 +92,10 @@ public class MinecraftServerMixin {
             if (WorldUtils.gameProgressHasEndDimensionBeenAccessedServerOnly() && !GloomyHostile.keepGloomPostDragon) {
                 GloomyHostile.worldState = 3;
             }
-            else if (WorldUtils.gameProgressHasWitherBeenSummonedServerOnly()) {
+            else if (WorldUtils.gameProgressHasWitherBeenSummonedServerOnly() && GloomyHostile.postWitherSunDelay <= 0) {
                 GloomyHostile.worldState = 2;
             }
-            else if (WorldUtils.gameProgressHasNetherBeenAccessedServerOnly()) {
+            else if (WorldUtils.gameProgressHasNetherBeenAccessedServerOnly() && GloomyHostile.postNetherMoonDelay <= 0) {
                 GloomyHostile.worldState = 1;
             }
             else

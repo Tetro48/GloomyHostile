@@ -20,6 +20,8 @@ public abstract class WorldMixin {
     @Shadow public abstract float getWeightedThunderStrength(float par1);
     @Shadow public abstract float getCelestialAngle(float par1);
 
+    @Shadow public boolean isRemote;
+
     private float calculateSkyBrightnessWithNewMoon(float sunBrightnessMultiplier) {
         float fCelestialAngle = this.getCelestialAngle(1.0F);
         float fSunInvertedBrightness = 1.0F - (MathHelper.cos(fCelestialAngle * (float)Math.PI * 2.0F) * 2.0F + 0.25F);
@@ -48,7 +50,7 @@ public abstract class WorldMixin {
     @Inject(method = "tick", at = @At("RETURN"))
     private void tick(CallbackInfo ci){
         World thisObj = (World)(Object)this;
-        if (thisObj.provider.dimensionId == 0 && !(thisObj instanceof WorldServer)){
+        if (thisObj.provider.dimensionId == 0 && this.isRemote){
             if (GloomyHostile.worldState == 2) {
                 GloomyHostile.postWitherSunTicks++;
                 if (GloomyHostile.postWitherSunTicks == GloomyHostile.sunTransitionTime) {
@@ -73,8 +75,14 @@ public abstract class WorldMixin {
         }
         else if (GloomyHostile.worldState == 2 || GloomyHostile.worldState == 1) {
             if (MinecraftServer.getIsServer()) cir.setReturnValue(4);
-            else cir.setReturnValue((int)lerp((float)cir.getReturnValue(), 4f,
-                    Math.min((float) GloomyHostile.postNetherMoonTicks / GloomyHostile.moonTransitionTime, 1f)));
+            else {
+                cir.setReturnValue((int) lerp((float) cir.getReturnValue(), 4f,
+                     Math.min((float) GloomyHostile.postNetherMoonTicks / GloomyHostile.moonTransitionTime, 1f)));
+                long days = (this.worldInfo.getWorldTime()) / 24000L;
+                if (GloomyHostile.isNightmareModeInstalled && !this.isRemote) {
+                    if (days % 16 == 8) cir.setReturnValue(0); // just for bloodmoon to exist, whilst also being visually new moon.
+                }
+            }
         }
     }
     private float lerp(float a, float b, float f) { return (a * (1.0f - f)) + (b * f); }

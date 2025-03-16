@@ -15,5 +15,7 @@ public class GuiIngameMenuMixin {
         GloomyHostile.worldState = 0;
         GloomyHostile.forcedStateDuration = 0;
         GloomyHostile.forcedWorldState = 0;
+        GloomyHostile.postNetherMoonDelay = -1;
+        GloomyHostile.postWitherSunDelay = -1;
     }
 }

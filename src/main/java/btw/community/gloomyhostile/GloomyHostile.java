@@ -24,6 +24,11 @@ public class GloomyHostile extends BTWAddon {
     public final static int sunTransitionTime = 360;
     public final static int moonTransitionTime = 240;
 
+    public static long postNetherMoonDelay = -1;
+    public static long postWitherSunDelay = -1;
+
+    public static boolean isNightmareModeInstalled;
+
     public static boolean enableGloomEverywhere;
     public static boolean keepGloomPostDragon;
     public static int challengeWorldState;
@@ -46,21 +51,24 @@ public class GloomyHostile extends BTWAddon {
 
             @Override
             public List addTabCompletionOptions(ICommandSender par1ICommandSender, String[] strings) {
-                if (strings.length == 2 && strings[0].equals("reset")) {
+                if (strings.length == 2 && strings[0].equals("set")) {
                     return getListOfStringsMatchingLastWord(strings, "nether", "wither", "end");
+                }
+                else if (strings.length == 3 && strings[0].equals("set")) {
+                    return getListOfStringsMatchingLastWord(strings, "true", "false");
                 }
                 else if (strings.length == 2 && strings[0].equals("force")) {
                     return getListOfStringsMatchingLastWord(strings, "0", "1", "2", "reset");
                 }
                 else if (strings.length == 1) {
-                    return getListOfStringsMatchingLastWord(strings, "get", "force", "reset");
+                    return getListOfStringsMatchingLastWord(strings, "get", "force", "set");
                 }
                 return null;
             }
 
             @Override
             public String getCommandUsage(ICommandSender iCommandSender) {
-                return "/gloomyhostile <get / force <state, duration in ticks / reset> / reset <nether / wither / end>>";
+                return "/gloomyhostile <get / force <state, duration in ticks / reset> / set <nether / wither / end> <true / false>>";
             }
 
             @Override
@@ -74,17 +82,23 @@ public class GloomyHostile extends BTWAddon {
                     GloomyHostile.forcedStateDuration = duration;
                     iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("World state is set to " + customState + " for " + duration / 20d + " seconds. This doesn't persist between restarts."));
                 }
-                else if (strings.length == 2 && strings[0].equals("reset") && strings[1].equals("end")) {
-                    iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("End accessed boolean is now FALSE."));
-                    server.worldServers[0].setData(BTWWorldData.END_ACCESSED, false);
+                else if (strings.length == 3 && strings[0].equals("set") && strings[1].equals("end")) {
+                    boolean parsedBool = Boolean.parseBoolean(strings[2]);
+                    iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("End accessed boolean is now " + String.valueOf(parsedBool).toUpperCase() + "."));
+                    server.worldServers[0].setData(BTWWorldData.END_ACCESSED, parsedBool);
                 }
-                else if (strings.length == 2 && strings[0].equals("reset") && strings[1].equals("wither")) {
-                    iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("Wither summoned boolean is now FALSE."));
-                    server.worldServers[0].setData(BTWWorldData.WITHER_SUMMONED, false);
+                else if (strings.length == 3 && strings[0].equals("set") && strings[1].equals("wither")) {
+                    boolean parsedBool = Boolean.parseBoolean(strings[2]);
+                    iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("Wither summoned boolean is now " + String.valueOf(parsedBool).toUpperCase() + "."));
+                    server.worldServers[0].setData(BTWWorldData.WITHER_SUMMONED, parsedBool);
                 }
-                else if (strings.length == 2 && strings[0].equals("reset") && strings[1].equals("nether")) {
-                    iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("Nether accessed boolean is now FALSE."));
-                    server.worldServers[0].setData(BTWWorldData.NETHER_ACCESSED, false);
+                else if (strings.length == 3 && strings[0].equals("set") && strings[1].equals("nether")) {
+                    boolean parsedBool = Boolean.parseBoolean(strings[2]);
+                    iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("Nether accessed boolean is now " + String.valueOf(parsedBool).toUpperCase() + "."));
+                    server.worldServers[0].setData(BTWWorldData.NETHER_ACCESSED, parsedBool);
+                }
+                else if (strings.length == 2 && strings[0].equals("set")) {
+                    throw new WrongUsageException("/gloomyhostile set <nether / wither / end> <true / false>");
                 }
                 else if (strings.length == 2 && strings[0].equals("force") && strings[1].equals("reset")) {
                     iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("World state is no longer forced."));
@@ -92,10 +106,12 @@ public class GloomyHostile extends BTWAddon {
                     GloomyHostile.forcedStateDuration = 0;
                 }
                 else if (strings.length == 2 && strings[0].equals("force")) {
-                    throw new WrongUsageException("/gloomyhostile force <state, duration in ticks>");
+                    throw new WrongUsageException("/gloomyhostile force <state> <duration in ticks>");
                 }
                 else if (strings.length == 1 && strings[0].equals("get")) {
-                    iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("World state: " + GloomyHostile.worldState));
+                    iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText(
+                            "World state: " + GloomyHostile.worldState
+                            + "\nDelays: Post-nether: " + postNetherMoonDelay + " ticks, post-wither: " + postWitherSunDelay + " ticks."));
                 }
                 else {
                     throw new WrongUsageException(getCommandUsage(iCommandSender));
@@ -140,7 +156,7 @@ public class GloomyHostile extends BTWAddon {
             if (challengeWorldState == 2) {
                 challengeText = "You're going to be in pain, stone axe is pretty much mandatory.";
             }
-            if (AddonHandler.getModByID("nightmare_mode") != null) {
+            if (isNightmareModeInstalled) {
                 if (MinecraftServer.getServer().worldServers[0].getDifficulty() == Difficulties.HOSTILE) {
                     if (MinecraftServer.getIsServer()) challengeText = "Sadism, pure sadism.";
                     else challengeText = "You'll die.";
@@ -190,6 +206,11 @@ public class GloomyHostile extends BTWAddon {
         this.registerProperty("EnableGloomEverywhere", "False", "! WARNING ! IF YOU'RE SURE YOU WANT THIS OUTSIDE HOSTILE DIFFICULTY, SET THIS TO TRUE ! WARNING !");
         this.registerProperty("KeepGloomPostDragon", "False", "! WARNING ! IF YOU'RE SURE YOU WANT TO KEEP ETERNAL NIGHT POST-DRAGON, SET THIS TO TRUE ! WARNING !");
         this.registerProperty("WorldChallengeLevel", "0", "! WARNING ! IF YOU'RE SURE YOU WANT TO CAUSE PAIN ON YOURSELF, SET IT TO 1 FOR GLOOMY NIGHTS, 2 FOR ETERNAL DARKNESS ! WARNING !");
+    }
+
+    @Override
+    public void postInitialize() {
+        isNightmareModeInstalled = AddonHandler.getModByID("nightmare_mode") != null;
     }
 
     public static void sendWorldStateToAllPlayers() {
