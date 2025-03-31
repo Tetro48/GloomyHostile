@@ -21,17 +21,20 @@ public class GloomyHostile extends BTWAddon {
     public static int postWitherSunTicks = 0;
     public static int postNetherMoonTicks = 0;
 
-    public final static int sunTransitionTime = 360;
-    public final static int moonTransitionTime = 240;
+    public static int sunTransitionTime = 360;
+    public static int moonTransitionTime = 240;
 
     public static long postNetherMoonDelay = -1;
     public static long postWitherSunDelay = -1;
 
     public static boolean isNightmareModeInstalled;
 
+    public static boolean isCancerMode = false;
+
     public static boolean enableGloomEverywhere;
     public static boolean keepGloomPostDragon;
     public static int challengeWorldState;
+    public static int cancerModeToggle;
 
     public GloomyHostile() {
         super();
@@ -42,6 +45,14 @@ public class GloomyHostile extends BTWAddon {
         AddonHandler.logMessage(this.getName() + " Version " + this.getVersionString() + " Initializing...");
         if (!MinecraftServer.getIsServer()) {
             initClientPacketInfo();
+        }
+        int day = Calendar.getInstance().get(Calendar.DAY_OF_MONTH);
+        int month = Calendar.getInstance().get(Calendar.MONTH);
+        System.out.println("day & month = " + day + ", " + month);
+        if ((day == 1 && month == Calendar.APRIL && cancerModeToggle == 0) || cancerModeToggle == 2) {
+            isCancerMode = true;
+            sunTransitionTime = 60;
+            moonTransitionTime = 40;
         }
         registerAddonCommand(new CommandBase() {
             @Override
@@ -169,6 +180,21 @@ public class GloomyHostile extends BTWAddon {
             serverHandler.sendPacketToPlayer(new Packet3Chat(message));
 
         }
+        if (isCancerMode) {
+
+            String afText = "You notice that the world is doing something... weird.";
+            ChatMessageComponent message = ChatMessageComponent.createFromText(afText);
+            message.setItalic(true);
+//            message.setBold(true);
+            message.setColor(EnumChatFormatting.GRAY);
+            serverHandler.sendPacketToPlayer(new Packet3Chat(message));
+            String afText2 = "Don't question it ;)";
+            ChatMessageComponent message2 = ChatMessageComponent.createFromText(afText2);
+            message2.setItalic(true);
+            message2.setBold(true);
+            message2.setColor(EnumChatFormatting.GOLD);
+            serverHandler.sendPacketToPlayer(new Packet3Chat(message2));
+        }
     }
 
     private static void sendWorldStateToClient(NetServerHandler serverHandler) {
@@ -200,12 +226,15 @@ public class GloomyHostile extends BTWAddon {
             AddonHandler.logWarning("Illegal world state challenge level of " + challengeWorldState);
             challengeWorldState = MathHelper.clamp_int(challengeWorldState, 0, 2);
         }
+        cancerModeToggle = Integer.parseInt(propertyValues.get("CancerModeToggle"));
+        cancerModeToggle = MathHelper.clamp_int(cancerModeToggle, 0, 2);
     }
     @Override
     public void preInitialize() {
         this.registerProperty("EnableGloomEverywhere", "False", "! WARNING ! IF YOU'RE SURE YOU WANT THIS OUTSIDE HOSTILE DIFFICULTY, SET THIS TO TRUE ! WARNING !");
         this.registerProperty("KeepGloomPostDragon", "False", "! WARNING ! IF YOU'RE SURE YOU WANT TO KEEP ETERNAL NIGHT POST-DRAGON, SET THIS TO TRUE ! WARNING !");
         this.registerProperty("WorldChallengeLevel", "0", "! WARNING ! IF YOU'RE SURE YOU WANT TO CAUSE PAIN ON YOURSELF, SET IT TO 1 FOR GLOOMY NIGHTS, 2 FOR ETERNAL DARKNESS ! WARNING !");
+        this.registerProperty("CancerModeToggle", "0", "Set this to 1 if you don't want April Fools to screw you over, lol, or set it to 2 to screw yourself over outside of April Fools.");
     }
 
     @Override

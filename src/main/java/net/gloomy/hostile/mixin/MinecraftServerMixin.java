@@ -19,6 +19,9 @@ public class MinecraftServerMixin {
     @Unique
     private int oldWorldState;
 
+    @Unique private int checksUntilRandomState = 0;
+    @Unique private int cancerState = 0;
+
     @Inject(method = "initialWorldChunkLoad", at = @At("RETURN"))
     private void initialWorldChunkLoadMixin(CallbackInfo ci) {
         if (this.worldServers[0].worldInfo.getDifficulty() == Difficulties.HOSTILE || GloomyHostile.enableGloomEverywhere){
@@ -107,7 +110,16 @@ public class MinecraftServerMixin {
         {
             GloomyHostile.worldState = 0;
         }
+        if (GloomyHostile.isCancerMode) {
+            checksUntilRandomState--;
+            if (checksUntilRandomState <= 0) {
+                checksUntilRandomState = (int) Math.floor(4d + Math.random() * 8d);
+                //guaranteed to be at most 2
+                cancerState = (int)(Math.random() * 3d);
+            }
+        }
         GloomyHostile.worldState = Math.max(GloomyHostile.worldState, GloomyHostile.challengeWorldState);
+        GloomyHostile.worldState = Math.max(GloomyHostile.worldState, cancerState);
         if (GloomyHostile.forcedStateDuration > 0) 
         {
             GloomyHostile.worldState = GloomyHostile.forcedWorldState;
