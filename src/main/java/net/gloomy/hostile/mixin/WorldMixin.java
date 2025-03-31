@@ -53,14 +53,14 @@ public abstract class WorldMixin {
         if (thisObj.provider.dimensionId == 0 && this.isRemote){
             if (GloomyHostile.worldState == 2) {
                 GloomyHostile.postWitherSunTicks++;
-                if (GloomyHostile.postWitherSunTicks == GloomyHostile.sunTransitionTime && !GloomyHostile.isCancerMode) {
+                if (GloomyHostile.postWitherSunTicks == GloomyHostile.sunTransitionTime) {
                     Minecraft.getMinecraft().thePlayer.playSound("mob.wither.spawn",3.4E38F,0.5F);
                 }
             }
             else GloomyHostile.postWitherSunTicks = 0;
             if (GloomyHostile.worldState == 1 || GloomyHostile.worldState == 2) {
                 GloomyHostile.postNetherMoonTicks++;
-                if (GloomyHostile.postNetherMoonTicks == GloomyHostile.moonTransitionTime && GloomyHostile.worldState == 1 && !GloomyHostile.isCancerMode) {
+                if (GloomyHostile.postNetherMoonTicks == GloomyHostile.moonTransitionTime && GloomyHostile.worldState == 1) {
                     Minecraft.getMinecraft().thePlayer.playSound("mob.wither.death",3.4E38F,0.5F);
                 }
             }
