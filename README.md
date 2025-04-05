@@ -8,6 +8,8 @@ Features include:
 - Defeating the Ender Dragon (technically, entering The End) will return the world back to normal.
   - This functionality can be turned off, for the darkness to remain.
 
+You can optionally challenge yourself with World Challenge Level configuration.
+
 ## License
 
 The template that this project is built upon is available under the CC0 license. Feel free to learn from it and incorporate it in your own projects.
