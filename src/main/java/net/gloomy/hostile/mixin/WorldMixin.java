@@ -127,7 +127,7 @@ public abstract class WorldMixin {
     private void showStars(CallbackInfoReturnable<Float> cir){
         float transitionPoint = Math.min((float)GloomyHostile.postWitherSunTicks / GloomyHostile.sunTransitionTime, 1f);
         if (GloomyHostile.worldState == 2) {
-            float brightness = lerp(cir.getReturnValue(), 0.3f + (cir.getReturnValue() / 2.5F), transitionPoint);
+            float brightness = lerp(cir.getReturnValue(), 0.375F + (cir.getReturnValue() / 4F), transitionPoint);
             cir.setReturnValue(brightness);
         }
     }
