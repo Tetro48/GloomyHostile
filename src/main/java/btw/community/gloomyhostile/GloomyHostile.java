@@ -137,8 +137,9 @@ public class GloomyHostile extends BTWAddon {
                         else {
                             stateText += "Post-wither: ";
                         }
-                        stateText += postWitherSunDelay + " ticks.";
+                        stateText += postWitherSunDelay + " ticks";
                     }
+                    stateText += ".";
                 }
                 return stateText;
             }
