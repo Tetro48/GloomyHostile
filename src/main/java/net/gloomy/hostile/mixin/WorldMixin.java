@@ -5,6 +5,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.src.*;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -22,6 +23,7 @@ public abstract class WorldMixin {
 
     @Shadow public boolean isRemote;
 
+    @Unique
     private float calculateSkyBrightnessWithNewMoon(float sunBrightnessMultiplier) {
         float fCelestialAngle = this.getCelestialAngle(1.0F);
         float fSunInvertedBrightness = 1.0F - (MathHelper.cos(fCelestialAngle * (float)Math.PI * 2.0F) * 2.0F + 0.25F);
@@ -85,10 +87,10 @@ public abstract class WorldMixin {
             }
         }
     }
-    private float lerp(float a, float b, float f) { return (a * (1.0f - f)) + (b * f); }
-    private double lerp(double a, double b, double f)
+    @Unique private float lerp(float a, float b, float f) { return (a * (1.0f - f)) + (b * f); }
+    @Unique private double lerp(double a, double b, double f)
     {
-        return (a * (1.0f - f)) + (b * f);
+        return (a * (1.0d - f)) + (b * f);
     }
 
     /* ! WARNING ! This will modify how isDaytime works! ! WARNING ! */
@@ -123,10 +125,9 @@ public abstract class WorldMixin {
     }
     @Inject(method = "getStarBrightness", at = @At("RETURN"), cancellable = true)
     private void showStars(CallbackInfoReturnable<Float> cir){
-        World thisObj = (World)(Object)this;
         float transitionPoint = Math.min((float)GloomyHostile.postWitherSunTicks / GloomyHostile.sunTransitionTime, 1f);
         if (GloomyHostile.worldState == 2) {
-            float brightness = lerp(cir.getReturnValue(), thisObj.skylightSubtracted / 30f, transitionPoint);
+            float brightness = lerp(cir.getReturnValue(), 0.3f + (cir.getReturnValue() / 2.5F), transitionPoint);
             cir.setReturnValue(brightness);
         }
     }

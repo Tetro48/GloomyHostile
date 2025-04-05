@@ -2,12 +2,14 @@ package btw.community.gloomyhostile;
 
 import btw.AddonHandler;
 import btw.BTWAddon;
+import btw.world.util.WorldUtils;
 import btw.world.util.data.BTWWorldData;
 import btw.world.util.difficulty.Difficulties;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.src.*;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.util.*;
@@ -85,16 +87,19 @@ public class GloomyHostile extends BTWAddon {
                 else if (strings.length == 3 && strings[0].equals("set") && strings[1].equals("end")) {
                     boolean parsedBool = Boolean.parseBoolean(strings[2]);
                     iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("End accessed boolean is now " + String.valueOf(parsedBool).toUpperCase() + "."));
+                    if (parsedBool) WorldUtils.gameProgressSetEndDimensionHasBeenAccessedServerOnly();
                     server.worldServers[0].setData(BTWWorldData.END_ACCESSED, parsedBool);
                 }
                 else if (strings.length == 3 && strings[0].equals("set") && strings[1].equals("wither")) {
                     boolean parsedBool = Boolean.parseBoolean(strings[2]);
                     iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("Wither summoned boolean is now " + String.valueOf(parsedBool).toUpperCase() + "."));
+                    if (parsedBool) WorldUtils.gameProgressSetWitherHasBeenSummonedServerOnly();
                     server.worldServers[0].setData(BTWWorldData.WITHER_SUMMONED, parsedBool);
                 }
                 else if (strings.length == 3 && strings[0].equals("set") && strings[1].equals("nether")) {
                     boolean parsedBool = Boolean.parseBoolean(strings[2]);
                     iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText("Nether accessed boolean is now " + String.valueOf(parsedBool).toUpperCase() + "."));
+                    if (parsedBool) WorldUtils.gameProgressSetNetherBeenAccessedServerOnly();
                     server.worldServers[0].setData(BTWWorldData.NETHER_ACCESSED, parsedBool);
                 }
                 else if (strings.length == 2 && strings[0].equals("set")) {
@@ -109,13 +114,33 @@ public class GloomyHostile extends BTWAddon {
                     throw new WrongUsageException("/gloomyhostile force <state> <duration in ticks>");
                 }
                 else if (strings.length == 1 && strings[0].equals("get")) {
-                    iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText(
-                            "World state: " + GloomyHostile.worldState
-                            + "\nDelays: Post-nether: " + postNetherMoonDelay + " ticks, post-wither: " + postWitherSunDelay + " ticks."));
+                    String stateText = getStateText();
+                    iCommandSender.sendChatToPlayer(ChatMessageComponent.createFromText(stateText));
                 }
                 else {
                     throw new WrongUsageException(getCommandUsage(iCommandSender));
                 }
+            }
+
+            private @NotNull String getStateText() {
+                String stateText = "World state: " + GloomyHostile.worldState;
+                //yes, this is coded terribly, but I digress.
+                if (postNetherMoonDelay > 0 || postWitherSunDelay > 0) {
+                    stateText += "\nDelays: ";
+                    if (postNetherMoonDelay > 0) {
+                        stateText += "Post-nether: " + postNetherMoonDelay + " ticks";
+                    }
+                    if (postWitherSunDelay > 0) {
+                        if (postNetherMoonDelay > 0) {
+                            stateText += ", post-wither: ";
+                        }
+                        else {
+                            stateText += "Post-wither: ";
+                        }
+                        stateText += postWitherSunDelay + " ticks.";
+                    }
+                }
+                return stateText;
             }
 
             @Override
@@ -124,7 +149,7 @@ public class GloomyHostile extends BTWAddon {
             }
         });
     }
-    
+
     @Environment(EnvType.CLIENT)
     private void initClientPacketInfo() {
         AddonHandler.registerPacketHandler("gloomyhostile|state", (packet, player) -> {
