@@ -54,7 +54,7 @@ public class MinecraftServerMixin {
         GloomyHostile.postNetherMoonDelay--;
         GloomyHostile.postWitherSunDelay--;
         if (this.worldServers[0].worldInfo.getDifficulty() == Difficulties.HOSTILE || GloomyHostile.enableGloomEverywhere) {
-            if (GloomyHostile.postNetherMoonDelay == 0) {
+            if (GloomyHostile.postNetherMoonDelay == 0 && GloomyHostile.challengeWorldState < 1) {
                 for (Object player : MinecraftServer.getServer().getConfigurationManager().playerEntityList) {
                     if (player instanceof EntityPlayerMP entityPlayerMP) {
                         ChatMessageComponent text2 = new ChatMessageComponent();
@@ -65,7 +65,7 @@ public class MinecraftServerMixin {
                     }
                 }
             }
-            if (GloomyHostile.postWitherSunDelay == 0) {
+            if (GloomyHostile.postWitherSunDelay == 0 && GloomyHostile.challengeWorldState < 2) {
                 for (Object player : MinecraftServer.getServer().getConfigurationManager().playerEntityList) {
                     if (player instanceof EntityPlayerMP entityPlayerMP) {
                         ChatMessageComponent text2 = new ChatMessageComponent();
