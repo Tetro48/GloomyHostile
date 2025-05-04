@@ -179,13 +179,34 @@ public class GloomyHostile extends BTWAddon {
         //message on join
         if (challengeWorldState > 0) {
             String challengeText = "Huh, challenging yourself with total darkness during night? Good luck!";
+            if (WorldUtils.gameProgressHasEndDimensionBeenAccessedServerOnly()) {
+                challengeText = "The End.";
+            }
+            else if (WorldUtils.gameProgressHasWitherBeenSummonedServerOnly()) {
+                challengeText = "Well, sun has been weakened, because of something.";
+            }
+            else if (WorldUtils.gameProgressHasNetherBeenAccessedServerOnly()) {
+                challengeText = "More powerful permanent lights... huh.";
+            }
             if (challengeWorldState == 2) {
                 challengeText = "You're going to be in pain, stone axe is pretty much mandatory.";
+                if (WorldUtils.gameProgressHasEndDimensionBeenAccessedServerOnly()) {
+                    challengeText = "The End of dark days.";
+                }
+                else if (WorldUtils.gameProgressHasWitherBeenSummonedServerOnly()) {
+                    challengeText = "Alright... that is decent progress...";
+                }
+                else if (WorldUtils.gameProgressHasNetherBeenAccessedServerOnly()) {
+                    challengeText = "Hmmm... things get rather interesting...";
+                }
             }
             if (isNightmareModeInstalled) {
                 if (MinecraftServer.getServer().worldServers[0].getDifficulty() == Difficulties.HOSTILE) {
                     if (MinecraftServer.getIsServer()) challengeText = "Sadism, pure sadism.";
                     else challengeText = "You'll die.";
+                    if (WorldUtils.gameProgressHasNetherBeenAccessedServerOnly()) {
+                        challengeText = "Good luck with gloom bloodmoons!";
+                    }
                 }
             }
             ChatMessageComponent message = ChatMessageComponent.createFromText(challengeText);
