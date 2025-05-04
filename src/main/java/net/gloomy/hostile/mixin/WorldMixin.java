@@ -128,10 +128,9 @@ public abstract class WorldMixin {
         World thisObj = (World)(Object)this;
         double transitionPoint = Math.min((double)GloomyHostile.postWitherSunTicks / GloomyHostile.sunTransitionTime, 1d);
         if (GloomyHostile.worldState == 2) {
-            double darkness = 0.1d - (thisObj.skylightSubtracted / 15d) * 0.1d;
             Vec3 cloudColor = cir.getReturnValue();
-            cloudColor.scale(lerp(1, darkness, transitionPoint));
-            cir.setReturnValue(cloudColor);
+            cloudColor.scale(lerp(1, 0.2d, transitionPoint));
+            cir.setReturnValue(cloudColor.addVector(0, 0, lerp(0, 0.1d - (thisObj.skylightSubtracted - 11) / 40d, transitionPoint)));
         }
     }
     @Inject(method = "getStarBrightness", at = @At("RETURN"), cancellable = true)
