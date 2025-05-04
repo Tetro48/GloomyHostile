@@ -183,7 +183,7 @@ public class GloomyHostile extends BTWAddon {
                 challengeText = "The End.";
             }
             else if (WorldUtils.gameProgressHasWitherBeenSummonedServerOnly()) {
-                challengeText = "Well, sun has been weakened, because of something.";
+                challengeText = "Well, The Sun has been weakened, because of something.";
             }
             else if (WorldUtils.gameProgressHasNetherBeenAccessedServerOnly()) {
                 challengeText = "More powerful permanent lights... huh.";
