@@ -123,6 +123,17 @@ public abstract class WorldMixin {
             cir.setReturnValue(fogColor);
         }
     }
+    @Inject(method = "getCloudColour", at = @At("RETURN"), cancellable = true)
+    private void darkenClouds(CallbackInfoReturnable<Vec3> cir){
+        World thisObj = (World)(Object)this;
+        double transitionPoint = Math.min((double)GloomyHostile.postWitherSunTicks / GloomyHostile.sunTransitionTime, 1d);
+        if (GloomyHostile.worldState == 2) {
+            double darkness = 0.1d - (thisObj.skylightSubtracted / 15d) * 0.1d;
+            Vec3 cloudColor = cir.getReturnValue();
+            cloudColor.scale(lerp(1, darkness, transitionPoint));
+            cir.setReturnValue(cloudColor);
+        }
+    }
     @Inject(method = "getStarBrightness", at = @At("RETURN"), cancellable = true)
     private void showStars(CallbackInfoReturnable<Float> cir){
         float transitionPoint = Math.min((float)GloomyHostile.postWitherSunTicks / GloomyHostile.sunTransitionTime, 1f);
