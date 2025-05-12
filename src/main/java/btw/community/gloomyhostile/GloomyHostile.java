@@ -2,6 +2,7 @@ package btw.community.gloomyhostile;
 
 import btw.AddonHandler;
 import btw.BTWAddon;
+import btw.util.sounds.AddonSoundRegistryEntry;
 import btw.world.util.WorldUtils;
 import btw.world.util.data.BTWWorldData;
 import btw.world.util.difficulty.Difficulties;
@@ -34,6 +35,10 @@ public class GloomyHostile extends BTWAddon {
     public static boolean enableGloomEverywhere;
     public static boolean keepGloomPostDragon;
     public static int challengeWorldState;
+    public static boolean celestialNoises;
+    public static boolean windNoises;
+
+    private final AddonSoundRegistryEntry windSound = new AddonSoundRegistryEntry("gloomyhostile:wind");
 
     public GloomyHostile() {
         super();
@@ -247,12 +252,20 @@ public class GloomyHostile extends BTWAddon {
             AddonHandler.logWarning("Illegal world state challenge level of " + challengeWorldState);
             challengeWorldState = MathHelper.clamp_int(challengeWorldState, 0, 2);
         }
+        if (!MinecraftServer.getIsServer()) {
+            celestialNoises = Boolean.parseBoolean(propertyValues.get("CelestialNoises"));
+            windNoises = Boolean.parseBoolean(propertyValues.get("WindNoises"));
+        }
     }
     @Override
     public void preInitialize() {
         this.registerProperty("EnableGloomEverywhere", "False", "! WARNING ! IF YOU'RE SURE YOU WANT THIS OUTSIDE HOSTILE DIFFICULTY, SET THIS TO TRUE ! WARNING !");
         this.registerProperty("KeepGloomPostDragon", "False", "! WARNING ! IF YOU'RE SURE YOU WANT TO KEEP ETERNAL NIGHT POST-DRAGON, SET THIS TO TRUE ! WARNING !");
         this.registerProperty("WorldChallengeLevel", "0", "! WARNING ! IF YOU'RE SURE YOU WANT TO CAUSE PAIN ON YOURSELF, SET IT TO 1 FOR GLOOMY NIGHTS, 2 FOR ETERNAL DARKNESS ! WARNING !");
+        if (!MinecraftServer.getIsServer()) {
+            this.registerProperty("CelestialNoises", "True", "This is a toggle for celestial body noises.");
+            this.registerProperty("WindNoises", "True", "This is a toggle for the wind.");
+        }
     }
 
     @Override

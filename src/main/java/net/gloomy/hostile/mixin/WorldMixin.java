@@ -55,14 +55,20 @@ public abstract class WorldMixin {
         if (thisObj.provider.dimensionId == 0 && this.isRemote){
             if (GloomyHostile.worldState == 2) {
                 GloomyHostile.postWitherSunTicks++;
-                if (GloomyHostile.postWitherSunTicks == GloomyHostile.sunTransitionTime) {
+                if (GloomyHostile.postWitherSunTicks == 1 && GloomyHostile.windNoises) {
+                    Minecraft.getMinecraft().thePlayer.playSound("gloomyhostile:wind",3.4E38F,0.5F);
+                }
+                if (GloomyHostile.postWitherSunTicks == GloomyHostile.sunTransitionTime && GloomyHostile.celestialNoises) {
                     Minecraft.getMinecraft().thePlayer.playSound("mob.wither.spawn",3.4E38F,0.5F);
                 }
             }
             else GloomyHostile.postWitherSunTicks = 0;
             if (GloomyHostile.worldState == 1 || GloomyHostile.worldState == 2) {
                 GloomyHostile.postNetherMoonTicks++;
-                if (GloomyHostile.postNetherMoonTicks == GloomyHostile.moonTransitionTime && GloomyHostile.worldState == 1) {
+                if (GloomyHostile.postNetherMoonTicks == 1 && GloomyHostile.worldState == 1 && GloomyHostile.windNoises) {
+                    Minecraft.getMinecraft().thePlayer.playSound("gloomyhostile:wind",3.4E38F,0.75F);
+                }
+                if (GloomyHostile.postNetherMoonTicks == GloomyHostile.moonTransitionTime && GloomyHostile.worldState == 1 && GloomyHostile.celestialNoises) {
                     Minecraft.getMinecraft().thePlayer.playSound("mob.wither.death",3.4E38F,0.5F);
                 }
             }
