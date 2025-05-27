@@ -82,14 +82,11 @@ public abstract class WorldMixin {
             //Nothing.
         }
         else if (GloomyHostile.worldState == 2 || GloomyHostile.worldState == 1) {
-            if (MinecraftServer.getIsServer()) cir.setReturnValue(4);
-            else {
-                cir.setReturnValue((int) lerp((float) cir.getReturnValue(), 4f,
-                     Math.min((float) GloomyHostile.postNetherMoonTicks / GloomyHostile.moonTransitionTime, 1f)));
-                long days = (this.worldInfo.getWorldTime()) / 24000L;
-                if (GloomyHostile.isNightmareModeInstalled && !this.isRemote) {
-                    if (days % 16 == 8) cir.setReturnValue(0); // just for bloodmoon to exist, whilst also being visually new moon.
-                }
+            cir.setReturnValue((int) lerp((float) cir.getReturnValue(), 4f,
+                 Math.min((float) GloomyHostile.postNetherMoonTicks / GloomyHostile.moonTransitionTime, 1f)));
+            long days = (this.worldInfo.getWorldTime()) / 24000L;
+            if (GloomyHostile.isNightmareModeInstalled && !this.isRemote) {
+                if (days % 16 == 8) cir.setReturnValue(0); // just for bloodmoon to exist, whilst also being visually new moon.
             }
         }
     }
@@ -123,7 +120,7 @@ public abstract class WorldMixin {
         World thisObj = (World)(Object)this;
         double transitionPoint = Math.min((double)GloomyHostile.postWitherSunTicks / GloomyHostile.sunTransitionTime, 1d);
         if (GloomyHostile.worldState == 2) {
-            double darkness = 0.1d - (thisObj.skylightSubtracted / 15d) * 0.1d;
+            double darkness = 0.11d - (thisObj.skylightSubtracted / 15d) * 0.1d;
             Vec3 fogColor = cir.getReturnValue();
             fogColor.scale(lerp(1, darkness, transitionPoint));
             cir.setReturnValue(fogColor);
