@@ -12,6 +12,6 @@ You can optionally challenge yourself with World Challenge Level configuration.
 
 ## License
 
-The template that this project is built upon is available under the CC0 license. Feel free to learn from it and incorporate it in your own projects.
+This project and the template that it is built upon is available under the CC0 license. Feel free to learn from it and incorporate it in your own projects.
 This project incorporates:
 * A precompiled version of [Tiny Remapper](https://github.com/FabricMC/tiny-remapper) (LGPL-3.0)
