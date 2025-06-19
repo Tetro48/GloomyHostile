@@ -8,7 +8,7 @@ import net.minecraft.src.World;
 import org.spongepowered.asm.mixin.Mixin;
 
 @Mixin(TorchBlockBurningBase.class)
-public class TorchBlockBurningBaseMixin extends Block {
+public abstract class TorchBlockBurningBaseMixin extends Block {
 	protected TorchBlockBurningBaseMixin(int par1, Material par2Material) {
 		super(par1, par2Material);
 	}

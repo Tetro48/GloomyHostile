@@ -37,6 +37,7 @@ public class GloomyHostile extends BTWAddon {
     public static int challengeWorldState;
     public static boolean celestialNoises;
     public static boolean windNoises;
+    public static int visualSunType = 1;
 
     private final AddonSoundRegistryEntry windSound = new AddonSoundRegistryEntry("gloomyhostile:wind");
 
@@ -184,8 +185,15 @@ public class GloomyHostile extends BTWAddon {
         //message on join
         if (challengeWorldState > 0) {
             String challengeText = "Huh, challenging yourself with total darkness during night? Good luck!";
-            if (WorldUtils.gameProgressHasEndDimensionBeenAccessedServerOnly()) {
+            if (worldState == 3) {
                 challengeText = "The End.";
+            }
+            else if (WorldUtils.gameProgressHasEndDimensionBeenAccessedServerOnly()) {
+                challengeText = switch (playerMP.rand.nextInt(2)) {
+                    case 0 -> "What kind of god has done to this world???";
+                    case 1 -> "Why do I, as the world, feel off about this...";
+	                default -> "null";
+                };
             }
             else if (WorldUtils.gameProgressHasWitherBeenSummonedServerOnly()) {
                 challengeText = "Well, The Sun has been weakened, because of something.";
@@ -195,8 +203,15 @@ public class GloomyHostile extends BTWAddon {
             }
             if (challengeWorldState == 2) {
                 challengeText = "You're going to be in pain, stone axe is pretty much mandatory.";
-                if (WorldUtils.gameProgressHasEndDimensionBeenAccessedServerOnly()) {
+                if (worldState == 3) {
                     challengeText = "The End of dark days.";
+                }
+                if (WorldUtils.gameProgressHasEndDimensionBeenAccessedServerOnly()) {
+                    challengeText = switch (playerMP.rand.nextInt(2)) {
+                        case 0 -> "What kind of god has done to this world???";
+                        case 1 -> "Why do I, as the world, feel off about this...";
+                        default -> "null";
+                    };
                 }
                 else if (WorldUtils.gameProgressHasWitherBeenSummonedServerOnly()) {
                     challengeText = "Alright... that is decent progress...";
@@ -213,6 +228,9 @@ public class GloomyHostile extends BTWAddon {
                         challengeText = "Good luck with gloom bloodmoons!";
                     }
                 }
+            }
+            if (forcedStateDuration > 0) {
+                challengeText = "I'm being forced to change, despite the default challenge level";
             }
             ChatMessageComponent message = ChatMessageComponent.createFromText(challengeText);
             message.setItalic(true);
@@ -255,6 +273,7 @@ public class GloomyHostile extends BTWAddon {
         if (!MinecraftServer.getIsServer()) {
             celestialNoises = Boolean.parseBoolean(propertyValues.get("CelestialNoises"));
             windNoises = Boolean.parseBoolean(propertyValues.get("WindNoises"));
+            visualSunType = Integer.parseInt(propertyValues.get("VisualSunType"));
         }
     }
     @Override
@@ -265,6 +284,7 @@ public class GloomyHostile extends BTWAddon {
         if (!MinecraftServer.getIsServer()) {
             this.registerProperty("CelestialNoises", "True", "This is a toggle for celestial body noises.");
             this.registerProperty("WindNoises", "True", "This is a toggle for the wind.");
+            this.registerProperty("VisualSunType", "1", "This changes how the sun looks. Any values that is not 1 or 2 will result in how the sun used to blot before 1.7.2.\n# 1: Sun eclipsing (aka updated blotting textures)\n# 2: Sun fading");
         }
     }
 
