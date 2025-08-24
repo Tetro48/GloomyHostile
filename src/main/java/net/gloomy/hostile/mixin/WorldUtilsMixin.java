@@ -9,8 +9,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(WorldUtils.class)
-public class WorldUtilsMixin {
-    @Inject(method = "gameProgressSetNetherBeenAccessedServerOnly", at = @At(value = "INVOKE", target = "Lnet/minecraft/src/WorldServer;setData(Lbtw/world/util/data/DataEntry;Ljava/lang/Object;)V"))
+public abstract class WorldUtilsMixin {
+    @Inject(method = "gameProgressSetNetherBeenAccessedServerOnly", at = @At(value = "INVOKE", target = "Lnet/minecraft/src/WorldServer;setData(Lbtw/world/util/data/DataEntry$WorldDataEntry;Ljava/lang/Object;)V"))
     private static void onNetherPortalOpen(CallbackInfo ci) {
         if (MinecraftServer.getServer() != null) {
             if (!WorldUtils.gameProgressHasNetherBeenAccessedServerOnly()) {
@@ -23,7 +23,7 @@ public class WorldUtilsMixin {
             }
         }
     }
-    @Inject(method = "gameProgressSetWitherHasBeenSummonedServerOnly", at = @At(value = "INVOKE", target = "Lnet/minecraft/src/WorldServer;setData(Lbtw/world/util/data/DataEntry;Ljava/lang/Object;)V"))
+    @Inject(method = "gameProgressSetWitherHasBeenSummonedServerOnly", at = @At(value = "INVOKE", target = "Lnet/minecraft/src/WorldServer;setData(Lbtw/world/util/data/DataEntry$WorldDataEntry;Ljava/lang/Object;)V"))
     private static void onWitherSummon(CallbackInfo ci) {
         if (MinecraftServer.getServer() != null) {
             if (!WorldUtils.gameProgressHasWitherBeenSummonedServerOnly()) {
