@@ -11,6 +11,7 @@
     "TorchBlockBurningBaseMixin",
     "UnfiredBrickTileEntityMixin",
     "WorldMixin",
+    "WorldProviderMixin",
     "WorldUtilsMixin"
   ],
   "client": [

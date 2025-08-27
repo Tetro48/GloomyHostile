@@ -1,8 +1,10 @@
 package net.gloomy.hostile.mixin;
 
 import btw.community.gloomyhostile.GloomyHostile;
-import net.minecraft.server.MinecraftServer;
+import com.prupe.mcpatcher.cc.ColorizeWorld;
+import com.prupe.mcpatcher.cc.Colorizer;
 import net.minecraft.src.*;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -23,30 +25,51 @@ public abstract class WorldMixin {
 
     @Shadow public boolean isRemote;
 
-    @Unique
-    private float calculateSkyBrightnessWithNewMoon(float sunBrightnessMultiplier) {
-        float fCelestialAngle = this.getCelestialAngle(1.0F);
-        float fSunInvertedBrightness = 1.0F - (MathHelper.cos(fCelestialAngle * (float)Math.PI * 2.0F) * 2.0F + 0.25F);
-        fSunInvertedBrightness = Math.min(Math.max(fSunInvertedBrightness, 0), 1);
+    @Shadow private static double[] moonBrightnessByPhase;
 
-        double dSunBrightness = 1.0d - (double)fSunInvertedBrightness;
-        double dRainBrightnessModifier = 1.0d - (double)(this.getRainStrength(1.0F) * 5.0F) / 16.0d;
-        double dStormBrightnessModifier = 1.0d - (double)(this.getWeightedThunderStrength(1.0F) * 5.0F) / 16.0d;
-        dSunBrightness *= dRainBrightnessModifier * dStormBrightnessModifier * sunBrightnessMultiplier;
+    @Shadow @Final public WorldProvider provider;
 
-        return (float)(dSunBrightness);
-    }
-    @Inject(method = "computeOverworldSunBrightnessWithMoonPhases", at = @At("RETURN"),remap = false, cancellable = true)
-    private void manageLightLevels(CallbackInfoReturnable<Float> cir){
-        if (GloomyHostile.worldState == 3) {
-            //Nothing.
-        }
-        else if (GloomyHostile.worldState == 2 || GloomyHostile.worldState == 1) {
-            float moonTransitionPoint = Math.min((float)GloomyHostile.postNetherMoonTicks / GloomyHostile.moonTransitionTime, 1f);
-            float sunTransitionPoint = Math.min((float)GloomyHostile.postWitherSunTicks / GloomyHostile.sunTransitionTime, 1f);
-            cir.setReturnValue(lerp(cir.getReturnValue(),
-                    calculateSkyBrightnessWithNewMoon(lerp(1f, 0.25f, sunTransitionPoint)),
-                    moonTransitionPoint));
+    @Shadow public abstract long getWorldTime();
+
+    @Shadow public abstract BiomeGenBase getBiomeGenForCoords(int par1, int par2);
+
+    @Shadow public int lastLightningBolt;
+
+    @Shadow public abstract Vec3Pool getWorldVec3Pool();
+
+    @Shadow private long cloudColour;
+
+    @Inject(method = "computeOverworldSunBrightnessWithMoonPhases", at = @At("HEAD"), remap = false, cancellable = true)
+    public void manageLightLevels(CallbackInfoReturnable<Float> cir) {
+        if (GloomyHostile.worldState == 1 || GloomyHostile.worldState == 2) {
+            float moonTransitionPoint = Math.min((float) GloomyHostile.postNetherMoonTicks / GloomyHostile.moonTransitionTime, 1f);
+            float sunTransitionPoint = Math.min((float) GloomyHostile.postWitherSunTicks / GloomyHostile.sunTransitionTime, 1f);
+            long lOffsetWorldTime = this.worldInfo.getWorldTime() - 12000L;
+            if (lOffsetWorldTime < 0L) {
+                lOffsetWorldTime = 0L;
+            }
+
+            int iMoonPhase = (int) (lOffsetWorldTime / 24000L % 8L);
+            double dMoonBrightness = lerp(moonBrightnessByPhase[iMoonPhase], 0.0D, moonTransitionPoint);
+            float fCelestialAngle = this.getCelestialAngle(1.0F);
+            float fSunInvertedBrightness = 1.0F - (MathHelper.cos(fCelestialAngle * (float) Math.PI * 2.0F) * 2.0F + 0.25F);
+            if (fSunInvertedBrightness < 0.0F) {
+                fSunInvertedBrightness = 0.0F;
+            } else if (fSunInvertedBrightness > 1.0F) {
+                fSunInvertedBrightness = 1.0F;
+            }
+
+            double dSunBrightness = lerp(1.0D - (double) fSunInvertedBrightness, (1.0D - (double) fSunInvertedBrightness) / 8D, sunTransitionPoint);
+            double dRainBrightnessModifier = (double) 1.0F - (double) (this.getRainStrength(1.0F) * 5.0F) / (double) 16.0F;
+            double dStormBrightnessModifier = (double) 1.0F - (double) (this.getWeightedThunderStrength(1.0F) * 5.0F) / (double) 16.0F;
+            dSunBrightness = dSunBrightness * dRainBrightnessModifier * dStormBrightnessModifier;
+            double dMinBrightness = 0.2;
+            dMinBrightness *= dMoonBrightness * dRainBrightnessModifier * dStormBrightnessModifier;
+            if (dMinBrightness < 0.05) {
+                dMinBrightness = 0;
+            }
+
+            cir.setReturnValue((float) (dSunBrightness * (1.0D - dMinBrightness) + dMinBrightness));
         }
     }
     @Inject(method = "tick", at = @At("RETURN"))
@@ -104,45 +127,126 @@ public abstract class WorldMixin {
         }
     }
 
-    @Inject(method = "getSkyColor", at = @At("RETURN"), cancellable = true)
-    private void darkenSky(CallbackInfoReturnable<Vec3> cir){
-        World thisObj = (World)(Object)this;
-        double transitionPoint = Math.min((double)GloomyHostile.postWitherSunTicks / GloomyHostile.sunTransitionTime, 1d);
+    @Inject(method = "getSkyColor", at = @At("HEAD"), cancellable = true)
+    private void darkenSky(Entity par1Entity, float par2, CallbackInfoReturnable<Vec3> cir) {
         if (GloomyHostile.worldState == 2) {
-            double darkness = 0.15d - (thisObj.skylightSubtracted / 15d) * 0.1d;
-            Vec3 skyColor = cir.getReturnValue();
-            skyColor.scale(lerp(1, darkness, transitionPoint));
-            cir.setReturnValue(skyColor);
+            float transitionPoint = Math.min((float) GloomyHostile.postWitherSunTicks / GloomyHostile.sunTransitionTime, 1f);
+            float var3 = this.getCelestialAngle(par2);
+            float var4 = MathHelper.cos(var3 * (float) Math.PI * 2.0F) * 2.0F + 0.5F;
+            if (var4 < 0.0F) {
+                var4 = 0.0F;
+            }
+
+            if (var4 > 1.0F) {
+                var4 = 1.0F;
+            }
+
+            var4 = lerp(var4, 0f, transitionPoint);
+
+            int var5 = MathHelper.floor_double(par1Entity.posX);
+            int var6 = MathHelper.floor_double(par1Entity.posZ);
+            BiomeGenBase var7 = this.getBiomeGenForCoords(var5, var6);
+            float var8 = var7.getFloatTemperature();
+            int var9 = var7.getSkyColorByTemp(var8);
+            ColorizeWorld.setupForFog(par1Entity);
+            float var10;
+            float var11;
+            float var12;
+            if (ColorizeWorld.computeSkyColor((World) (Object) this, par2)) {
+                var10 = Colorizer.setColor[0];
+                var11 = Colorizer.setColor[1];
+                var12 = Colorizer.setColor[2];
+            } else {
+                var10 = (float) (var9 >> 16 & 255) / 255.0F;
+                var11 = (float) (var9 >> 8 & 255) / 255.0F;
+                var12 = (float) (var9 & 255) / 255.0F;
+            }
+
+            var10 *= var4;
+            var11 *= var4;
+            var12 *= var4;
+            float var13 = this.getRainStrength(par2);
+            if (var13 > 0.0F) {
+                float var14 = (var10 * 0.3F + var11 * 0.59F + var12 * 0.11F) * 0.6F;
+                float var15 = 1.0F - var13 * 0.75F;
+                var10 = var10 * var15 + var14 * (1.0F - var15);
+                var11 = var11 * var15 + var14 * (1.0F - var15);
+                var12 = var12 * var15 + var14 * (1.0F - var15);
+            }
+
+            float var14 = this.getWeightedThunderStrength(par2);
+            if (var14 > 0.0F) {
+                float var15 = (var10 * 0.3F + var11 * 0.59F + var12 * 0.11F) * 0.2F;
+                float var16 = 1.0F - var14 * 0.75F;
+                var10 = var10 * var16 + var15 * (1.0F - var16);
+                var11 = var11 * var16 + var15 * (1.0F - var16);
+                var12 = var12 * var16 + var15 * (1.0F - var16);
+            }
+
+            if (this.lastLightningBolt > 0) {
+                float var15 = (float) this.lastLightningBolt - par2;
+                if (var15 > 1.0F) {
+                    var15 = 1.0F;
+                }
+
+                var15 *= 0.45F;
+                var10 = var10 * (1.0F - var15) + 0.8F * var15;
+                var11 = var11 * (1.0F - var15) + 0.8F * var15;
+                var12 = var12 * (1.0F - var15) + 1.0F * var15;
+            }
+
+            cir.setReturnValue(this.getWorldVec3Pool().getVecFromPool((double) var10, (double) var11, (double) var12));
         }
     }
-    @Inject(method = "getFogColor", at = @At("RETURN"), cancellable = true)
-    private void darkenFog(CallbackInfoReturnable<Vec3> cir){
-        World thisObj = (World)(Object)this;
-        double transitionPoint = Math.min((double)GloomyHostile.postWitherSunTicks / GloomyHostile.sunTransitionTime, 1d);
+
+    @Inject(method = "getCloudColour", at = @At("HEAD"), cancellable = true)
+    private void darkenClouds(float par1, CallbackInfoReturnable<Vec3> cir){
         if (GloomyHostile.worldState == 2) {
-            double darkness = 0.11d - (thisObj.skylightSubtracted / 15d) * 0.1d;
-            Vec3 fogColor = cir.getReturnValue();
-            fogColor.scale(lerp(1, darkness, transitionPoint));
-            cir.setReturnValue(fogColor);
+            float transitionPoint = Math.min((float) GloomyHostile.postWitherSunTicks / GloomyHostile.sunTransitionTime, 1f);
+            float var2 = this.getCelestialAngle(par1);
+            float var3 = MathHelper.cos(var2 * (float) Math.PI * 2.0F) * 2.0F + 0.5F;
+            if (var3 < 0.0F) {
+                var3 = 0.0F;
+            }
+
+            if (var3 > 1.0F) {
+                var3 = 1.0F;
+            }
+
+            var3 = lerp(var3, 0f, transitionPoint);
+
+            float var4 = (float) (this.cloudColour >> 16 & 255L) / 255.0F;
+            float var5 = (float) (this.cloudColour >> 8 & 255L) / 255.0F;
+            float var6 = (float) (this.cloudColour & 255L) / 255.0F;
+            float var7 = this.getRainStrength(par1);
+            if (var7 > 0.0F) {
+                float var8 = (var4 * 0.3F + var5 * 0.59F + var6 * 0.11F) * 0.6F;
+                float var9 = 1.0F - var7 * 0.95F;
+                var4 = var4 * var9 + var8 * (1.0F - var9);
+                var5 = var5 * var9 + var8 * (1.0F - var9);
+                var6 = var6 * var9 + var8 * (1.0F - var9);
+            }
+
+            var4 *= var3 * 0.9F + 0.1F;
+            var5 *= var3 * 0.9F + 0.1F;
+            var6 *= var3 * 0.85F + 0.15F;
+            float var8 = this.getWeightedThunderStrength(par1);
+            if (var8 > 0.0F) {
+                float var9 = (var4 * 0.3F + var5 * 0.59F + var6 * 0.11F) * 0.2F;
+                float var10 = 1.0F - var8 * 0.95F;
+                var4 = var4 * var10 + var9 * (1.0F - var10);
+                var5 = var5 * var10 + var9 * (1.0F - var10);
+                var6 = var6 * var10 + var9 * (1.0F - var10);
+            }
+
+            cir.setReturnValue(this.getWorldVec3Pool().getVecFromPool((double) var4, (double) var5, (double) var6));
         }
     }
-    @Inject(method = "getCloudColour", at = @At("RETURN"), cancellable = true)
-    private void darkenClouds(CallbackInfoReturnable<Vec3> cir){
-        World thisObj = (World)(Object)this;
-        double transitionPoint = Math.min((double)GloomyHostile.postWitherSunTicks / GloomyHostile.sunTransitionTime, 1d);
-        if (GloomyHostile.worldState == 2) {
-            Vec3 cloudColor = cir.getReturnValue();
-            cloudColor.scale(lerp(1, 0.2d, transitionPoint));
-            cir.setReturnValue(cloudColor.addVector(0, 0, lerp(0, 0.1d - (thisObj.skylightSubtracted - 11) / 40d, transitionPoint)));
-        }
-    }
+
     @Inject(method = "getStarBrightness", at = @At("RETURN"), cancellable = true)
-    private void showStars(CallbackInfoReturnable<Float> cir){
-        float transitionPoint = Math.min((float)GloomyHostile.postWitherSunTicks / GloomyHostile.sunTransitionTime, 1f);
-        if (GloomyHostile.worldState == 2) {
-            float brightness = lerp(cir.getReturnValue(), 0.375F + (cir.getReturnValue() / 2F), transitionPoint);
-            cir.setReturnValue(brightness);
-        }
+    private void showStars(float par1, CallbackInfoReturnable<Float> cir){
+        float transitionPoint = Math.min((float) GloomyHostile.postWitherSunTicks / GloomyHostile.sunTransitionTime, 1f);
+        cir.setReturnValue(lerp(cir.getReturnValue(), 0.5f, transitionPoint));
     }
 
     @Inject(method = "isDaytime", at = @At("RETURN"), cancellable = true)
